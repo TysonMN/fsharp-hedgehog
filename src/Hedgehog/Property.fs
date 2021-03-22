@@ -81,7 +81,7 @@ module Property =
     let bind (k : 'a -> Property<'b>) (m : Property<'a>) : Property<'b> =
         bindGen (toGen << k) (toGen m) |> ofGen
 
-    let handle (e : exn) =
+    let private handle (e : exn) =
         Gen.constant (Journal.singletonMessage (string e), Failure) |> ofGen
 
     let forAll (k : 'a -> Property<'b>) (gen : Gen<'a>) : Property<'b> =
