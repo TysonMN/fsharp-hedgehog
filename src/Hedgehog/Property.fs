@@ -66,6 +66,9 @@ module Property =
     let map (f : 'a -> 'b) (x : Property<'a>) : Property<'b> =
         (mapGen << GenTuple.mapSnd << Outcome.map) f x
 
+    let set (a: 'a) (property : Property<'b>) : Property<'a> =
+        property |> map (fun _ -> a)
+
     let private bindGen
             (k : 'a -> Gen<Journal * Outcome<'b>>)
             (m : Gen<Journal * Outcome<'a>>) : Gen<Journal * Outcome<'b>> =
@@ -78,10 +81,9 @@ module Property =
             | Success x ->
                 GenTuple.mapFst (Journal.append journal) (k x))
 
-    let private handle (e : exn) =
-        Gen.constant (Journal.singletonMessage (string e), Failure) |> ofGen
-
     let bind (k : 'a -> Property<'b>) (m : Property<'a>) : Property<'b> =
+        let handle (e : exn) =
+            Gen.constant (Journal.singletonMessage (string e), Failure) |> ofGen
         bindGen (fun a -> (try k a with e -> handle e) |> toGen) (toGen m) |> ofGen
 
     let private printValue (value) : string =
@@ -104,7 +106,8 @@ module Property =
     let forAll (k : 'a -> Property<'b>) (gen : Gen<'a>) : Property<'b> =
         let prepend (x : 'a) =
             counterexample (fun () -> printValue x)
-            |> bind (fun _ -> try k x with e -> handle e)
+            |> set x
+            |> bind k
             |> toGen
 
         gen |> Gen.bind prepend |> ofGen
