@@ -7,6 +7,9 @@ let testCase = Test.testCase
 let ptestCase = Test.ptestCase
 let testList = Test.testList
 
+module Tests =
+    let failtestf format = failwithf format
+
 #else
 open Expecto
 
@@ -22,6 +25,7 @@ let testCases (label : string) (xs : seq<'a>) (f : 'a -> unit) : List<TestCase> 
         testCase (sprintf "%s: (%A)" label x) (fun _ -> f x) ]
 
 let fableIgnore (label : string) (test : unit -> unit) : TestCase =
+
 #if FABLE_COMPILER
     // Some tests are not running in Node.js.
     ptestCase label test
@@ -34,5 +38,13 @@ let inline (=!) (actual : 'a) (expected : 'a) : unit =
 
 [<RequireQualifiedAccess>]
 module Expect =
+    open System.Text.RegularExpressions
+
     let isTrue value =
         Expect.isTrue value "Should be true"
+
+    let isNotMatch actual pattern message =
+        if Regex.Match(actual, pattern).Success then
+            Tests.failtestf "%s. Expected %s to match pattern: /%s/" message actual pattern
+
+    let stringContains = Expect.stringContains
